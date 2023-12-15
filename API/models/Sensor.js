@@ -7,10 +7,6 @@ const Sensor = mongoose.Schema(
             type: String,
             required: [true, 'Please indicate name of asset']
         },
-        sensing: {
-            type: String,
-            required: [true, 'Indicate the unit you are measuring']
-        },
         address: {
             type: String,
             required: [true, 'address: /company/location/asset_id/']
@@ -19,7 +15,15 @@ const Sensor = mongoose.Schema(
             type: List[String],
             required: [true, 'Should be automatically generated from address']
             
-        }
+        },
+        sensingUnit: {
+            type: String,
+            required: [true, 'Indicate the unit you are measuring']
+        },
+        dataFrequency: {
+            type: String, // ms, s, m, hr, d, w, m
+            required: [true, 'this determines how data stored are managed']
+        },
         
     }
 )

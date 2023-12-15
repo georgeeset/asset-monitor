@@ -53,6 +53,39 @@ nsp.on('connection', function(socket){
 
   socket.on('message', function(data){
     console.log(`recieved form message ${data}`);
+
+    if (data == "getRecentData"){
+      /**
+       * TODO--------------
+       * get sensor infomation from mongodb database
+       * then get the query string of the sensor before
+       * quering influx for data so that the user is restricted
+       * to his sensor data only.
+       */
+      sensor_data_query_string = 'random_float'
+      duration = '1h';
+
+      // Define InfluxDB query
+      // const query = `SELECT * FROM ${data.sensor_data_query_string} WHERE time > now() - ${data.duration}`;
+      const query = `SELECT * FROM ${sensor_data_query_string} WHERE time > now() - ${duration}`;
+
+      // Stream data to the client
+      influx_connect.queryStream(query)
+        .then((stream) => {
+          stream.pipeTo({
+            write(data, enc, cb) {
+              socket.emit('getRecentData', {query: "getRecentData", data: data});
+              cb();
+            },
+            close() {
+              console.log('Stream closed');
+            },
+          });
+        })
+        .catch((err) => {
+          console.error(err);
+        });
+    }
   });
 
   socket.on('newclientconnect', (data)=>{
@@ -69,30 +102,7 @@ nsp.on('connection', function(socket){
       console.log('A user timedout');
       socket.disconnect();
     });
-  }, 10000);
-
-  socket.on('getRecentData', (data) => {
-    // Define InfluxDB query
-    const query = `SELECT * FROM ${data.location} WHERE time > now() - ${data.duration}`;
-
-    // Stream data to the client
-    influx_connect.queryStream(query)
-      .then((stream) => {
-        stream.pipeTo({
-          write(data, enc, cb) {
-            socket.emit('message', {query: "getRecentData", data: data});
-            cb();
-          },
-          close() {
-            console.log('Stream closed');
-          },
-        });
-      })
-      .catch((err) => {
-        console.error(err);
-      });
-
-    });
+  }, 100000);
 
 });
 
