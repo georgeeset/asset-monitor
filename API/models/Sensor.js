@@ -1,6 +1,5 @@
 const mongoose = require ('mongoose');
 
-
 /// schema for asset model
 const Sensor = mongoose.Schema(
     {
