@@ -1,0 +1,4 @@
+
+pip3 install influxdb-client
+
+INFLUXDB_TOKEN=dz3fDpr4r8RI7K-G9qlfEcoN9I1kT0ke-jN1hgX_Rnrk1K8yOOP8atmLdgZhVt9I_uNtjLYsRhUszwRpNQ99ng==

@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
@@ -18,12 +20,6 @@ const io = new Server(server, {
 });
 
 connect.connectDB(); //connect mongodb
-influx_connect = connect.connectInflux(); //connect influxdb
-
-//get enb data
-const GOOGLE_API_KEY = process.env.MONGODB_API_KEY;
-// console.log(GOOGLE_API_KEY);
-
 // Serve api rout
 app.get('/', (_req, res) => {
   res.status(200).send('request ed home');
@@ -65,26 +61,6 @@ nsp.on('connection', function(socket){
       sensor_data_query_string = 'random_float'
       duration = '1h';
 
-      // Define InfluxDB query
-      // const query = `SELECT * FROM ${data.sensor_data_query_string} WHERE time > now() - ${data.duration}`;
-      const query = `SELECT * FROM ${sensor_data_query_string} WHERE time > now() - ${duration}`;
-
-      // Stream data to the client
-      influx_connect.queryStream(query)
-        .then((stream) => {
-          stream.pipeTo({
-            write(data, enc, cb) {
-              socket.emit('getRecentData', {query: "getRecentData", data: data});
-              cb();
-            },
-            close() {
-              console.log('Stream closed');
-            },
-          });
-        })
-        .catch((err) => {
-          console.error(err);
-        });
     }
   });
 

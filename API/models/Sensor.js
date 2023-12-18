@@ -16,6 +16,11 @@ const Sensor = mongoose.Schema(
             required: [true, 'Should be automatically generated from address']
             
         },
+        proccessName: {
+            type: String,
+            required: [true, 'what variable are you measuring, switch, speed, count e.t.c']
+        },
+
         sensingUnit: {
             type: String,
             required: [true, 'Indicate the unit you are measuring']

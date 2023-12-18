@@ -25,7 +25,7 @@ const userAccess = mongoose.schema(
 
         level: {
             type: Number,
-            default: 10,
+            default: 1,
         }
 
     }
