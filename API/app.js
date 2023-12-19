@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import express from 'express';
+import express, { response } from 'express';
 import http from 'http';
 import { Server } from 'socket.io';
 import dotenv from 'dotenv';
@@ -9,6 +9,7 @@ import { InfluxDB } from '@influxdata/influxdb-client';
 import { triggerAsyncId } from 'async_hooks';
 
 import mqtt from 'mqtt';
+import { format } from 'path';
 
 
 dotenv.config({path: '.env'});
@@ -16,6 +17,9 @@ dotenv.config({path: '.env'});
 const influxUrl = process.env.INFLUX_URL;
 const influxToken = process.env.INFLUX_TOKEN;
 const influxOrg = process.env.INFLUX_ORG;
+
+// For test only
+const COMPANY_NAME = "EsetAutomaiton";
 
 // Instantiate the InfluxDB client with the provided configuration
 const influx = new InfluxDB({url: influxUrl, token: influxToken, org: influxOrg});
@@ -58,15 +62,15 @@ nsp.use((socket, next) => {
 nsp.on('connection', function(socket){
   // console.log('someone connected');
   socket.emit('message', {description: 'Hay, welcome'});
-  socket.join('newclientconnect');
   socket.send('connected');
-  socket.emit('subscribe', 'newclientconnect');
-  socket.emit('newclientconnect', {description: "client connected"});
+  // Subscribe the client to the channel
+  // socket.join('newclientconnect');
+  socket.to('newclientconnect').emit({description: "client connected"});  
 
   socket.on('disconnect', function(reason){
     console.log(reason);
     socket.emit('newclientconnect', {description: "client disconnected"});
-    mqttClient.disconnect();
+    mqttClient.end(); //disconnect from mqtt
   });
 
   socket.on('message', function(data){
@@ -81,7 +85,7 @@ nsp.on('connection', function(socket){
        * to his sensor data only.
       */
       // const query = 'SELECT * FROM EsetAutomation WHERE time > now() - 6h';
-      const fluxQuery = `from(bucket: "EsetAutomaiton")
+      const fluxQuery = `from(bucket: "${COMPANY_NAME}")
       |> range(start: 0)
       |> filter(fn: (r) => r._measurement == "vibration")`;
 
@@ -89,21 +93,61 @@ nsp.on('connection', function(socket){
       // Create an async function to query and log new data
       const myQuery = async () => {
         for await (const { values, tableMeta } of queryApi.iterateRows(fluxQuery)) {
-          const o = tableMeta.toObject(values);
-          console.log(`${o._time} ${o._measurement} in '${o.location}' (${o.sensor_id}): ${o._field}=${o._value}`);
+          const obj = tableMeta.toObject(values);
+
+          const responseData = new Map([
+            ['company_name', obj.company],
+            ['location', obj.location],
+            ['department', obj.department],
+            ['asset', obj.asset],
+            ['measurement', obj._measurement],
+            ['sensor_id', obj.sensor_id],
+            ['date_time', obj._time],
+            ['value', obj._value],
+          ]);
+          console.log(JSON.stringify(Object.fromEntries(responseData)));
+          socket.to('newclientconnect').emit(Object.fromEntries(responseData));
+          // console.log(`${o._time} ${o._measurement} in '${o.location}' (${o.sensor_id}): ${o._field}=${o._value}`);
         }
       };
       myQuery().then(()=>{
 
         // client.on('connect', ()=>{
         //   console.log('Connected to MQTT broker');
-        //   client.subscribe('EsetAutomaiton/#');
+        //   client.subscribe('COMPANY_NAME/#');
         // });
-        mqttClient.subscribe('EsetAutomaiton/#');
+        mqttClient.subscribe(`${COMPANY_NAME}/#`);
 
         mqttClient.on('message', (topic, message) => {
-          console.log('new data received', topic);
-          console.log(message.toString());
+          // console.log(message.toString());
+          //"EsetAutomaiton/Lagos/Utility/AHU/vibration/4332wz" 
+          const message_info = topic.split('/');
+          let dataFormat = [
+            ['company_name'],
+            ['location'],
+            ['department'],
+            ['asset'],
+            ['measurement'],
+            ['sensor_id'],
+            ['date_time'],
+            ['value']
+          ];
+
+          for (let i = 0; i < message_info.length; i++) {
+            dataFormat[i].push(message_info[i]);
+          }
+          const now = new Date(); // get current date and time
+          dataFormat[dataFormat.length - 1].push(JSON.parse(message).value); // vill value
+          dataFormat[dataFormat.length - 2].push(now.toISOString()); //fill time in utc iso
+          // console.log(dataFormat);
+
+          const responseData = new Map(dataFormat);
+          console.log(JSON.stringify(Object.fromEntries(responseData)));     
+          socket.to('newclientconnect').emit(Object.fromEntries(responseData));
+        });
+
+        mqttClient.on('disconnecting',(reason) => {
+          console.log('disconnecting from disconnecting')
         });
         
         mqttClient.on('error', (error) => {
@@ -114,12 +158,7 @@ nsp.on('connection', function(socket){
   });
 
   socket.on('newclientconnect', (data)=>{
-    // console.log(data)
-    if (data == 'newclientconnect'){
-      console.log('not allowed');
-      return;
-    }
-    console.log(data);
+    console.log(data)
   });
 
   setTimeout(function(){
