@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "Asset monitoring appliction",
   "main": "app.js",
+  "type": "module",
   "scripts": {
     "test": "test_api",
     "start": "nodemon app.js"
@@ -10,11 +11,13 @@
   "author": "GeorgeEset",
   "license": "ISC",
   "dependencies": {
+    "@influxdata/influxdb-client": "^1.33.2",
+    "@influxdata/influxdb-client-apis": "^1.33.2",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
     "express": "^4.18.2",
-    "influx": "^5.9.3",
     "mongoose": "^8.0.3",
+    "mqtt": "^5.3.3",
     "nodemon": "^3.0.2",
     "socket.io": "^4.7.2"
   }

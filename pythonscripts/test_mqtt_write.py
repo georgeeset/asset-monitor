@@ -10,7 +10,7 @@ broker_port = 1883
 publish_channel = "EsetAutomaiton/Lagos/Utility/AHU/vibration/4332wz" 
 #format => company/location/department/asset/variable/sensor_id
 
-# Setup timer with 1 second interval
+# Setup timer
 import time
 
 def publish_random_float():

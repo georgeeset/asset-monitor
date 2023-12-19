@@ -70,7 +70,6 @@ def on_message(client, userdata, msg):
        print("bucket does not exist")
        response =  BucketsApi(write_client).create_bucket(
            {'bucket_name': bucket_name,
-            'org_id': '0c3df5812af8a000',
             'retention_rules': "7d",
             'description': f"{bucket_name} company bucket",
             'org': org,}
