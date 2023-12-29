@@ -130,5 +130,5 @@ dist
 .pnp.*
 
 # Python configuration file
- config_file.txt
+#  config_file.txt
  

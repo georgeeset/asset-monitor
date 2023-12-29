@@ -12,11 +12,11 @@ from influxdb_client.client.write_api import SYNCHRONOUS
 
 # Broker address and port
 broker_address = os.environ.get('MQTT_ADDRESS', 'localhost')
-broker_port = os.environ.get('MQTT_PORT', 1883)
+broker_port = int(os.environ.get('MQTT_PORT', 1883))
 influxdb_token = os.environ.get ('INFLUX_TOKEN')
 influx_address = os.environ.get('INFLUX_URL', 'http://localhost:8086')
 org = "EsetAutomation"
-print(influxdb_token)
+# print(influxdb_token)
 
 # connect to influxdb database
 write_client = influxdb_client.InfluxDBClient(url=influx_address, token=influxdb_token, org=org)
@@ -62,20 +62,23 @@ def on_message(client, userdata, msg):
     #get bucket information, check if bucket exist before creating
     bucket_name = extract_string(topic, 0) #company name
     response = write_client.buckets_api().find_bucket_by_name(bucket_name)
-    print(response)
+    # print(response)
     if response:
         print("bucket exists")
         write_api.write(bucket=extract_string(topic, 0), org=org, record=point, write_precision=WritePrecision.S)
     else:
        print("bucket does not exist")
-       response =  BucketsApi(write_client).create_bucket(
-           {'bucket_name': bucket_name,
-            'retention_rules': "7d",
-            'description': f"{bucket_name} company bucket",
-            'org': org,}
-        )
-       write_api.write(bucket=extract_string(topic, 0), org=org, record=point, write_precision=WritePrecision.S)
-# write_api.write('random_float', 'AssetHound', payload, write_precision='s')
+    #    response =  BucketsApi(write_client).create_bucket(
+    #        {'bucket_name': bucket_name,
+    #         'retention_rules': "7d",
+    #         'description': f"{bucket_name} company bucket",
+    #         'org': org,}
+    #     )
+    #    write_api.write(bucket=extract_string(topic, 0), org=org, record=point, write_precision=WritePrecision.S)
+
+def on_disconnect(client, userdata, rc):
+    if rc != 0:
+        print("unexpected mqtt disconnection. will auto-reconnect")
 
 
 # Create an MQTT client object
@@ -90,5 +93,9 @@ client.connect(broker_address, broker_port)
 # Subscribe to all channels with wildcard "#" (be cautious with performance implications)
 client.subscribe("#")
 
+# disconnect reconnect
+client.on_disconnect = on_disconnect
+
 # Keep the script running
 client.loop_forever()
+

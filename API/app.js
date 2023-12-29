@@ -62,15 +62,26 @@ nsp.use((socket, next) => {
 nsp.on('connection', function(socket){
   // console.log('someone connected');
   socket.emit('message', {description: 'Hay, welcome'});
-  socket.send('connected');
-  // Subscribe the client to the channel
-  // socket.join('newclientconnect');
-  socket.to('newclientconnect').emit({description: "client connected"});  
+  socket.send('Hello from server');
+  /**
+   *  Subscribe the client to the channel
+   * use the socket data to of user to determine the
+   * chennel name which should likely be the company and location name
+   * for test purposes, the name is fixed at newconnection
+   * from docs, channels are closed automatically if no one is listening
+   */
+  socket.join('newclientconnect');
+
+  // send priveate message to client
+  socket.send(`welcome, your session id is: ${socket.id}`)
+  //send a welcome message to all
+  nsp.to('newclientconnect').emit("message", "new client just joined");
 
   socket.on('disconnect', function(reason){
     console.log(reason);
     socket.emit('newclientconnect', {description: "client disconnected"});
     mqttClient.end(); //disconnect from mqtt
+    socket.leave('newclientconnect');
   });
 
   socket.on('message', function(data){
@@ -86,11 +97,11 @@ nsp.on('connection', function(socket){
       */
       // const query = 'SELECT * FROM EsetAutomation WHERE time > now() - 6h';
       const fluxQuery = `from(bucket: "${COMPANY_NAME}")
-      |> range(start: 0)
+      |> range(start: -1h)
       |> filter(fn: (r) => r._measurement == "vibration")`;
 
 
-      // Create an async function to query and log new data
+      // Create an async function to query gand log new data
       const myQuery = async () => {
         for await (const { values, tableMeta } of queryApi.iterateRows(fluxQuery)) {
           const obj = tableMeta.toObject(values);
@@ -105,8 +116,8 @@ nsp.on('connection', function(socket){
             ['date_time', obj._time],
             ['value', obj._value],
           ]);
-          console.log(JSON.stringify(Object.fromEntries(responseData)));
-          socket.to('newclientconnect').emit(Object.fromEntries(responseData));
+          // console.log(JSON.stringify(Object.fromEntries(responseData)));
+          nsp.to('newclientconnect').emit('message', Object.fromEntries(responseData));
           // console.log(`${o._time} ${o._measurement} in '${o.location}' (${o.sensor_id}): ${o._field}=${o._value}`);
         }
       };
@@ -142,8 +153,8 @@ nsp.on('connection', function(socket){
           // console.log(dataFormat);
 
           const responseData = new Map(dataFormat);
-          console.log(JSON.stringify(Object.fromEntries(responseData)));     
-          socket.to('newclientconnect').emit(Object.fromEntries(responseData));
+          // console.log(JSON.stringify(Object.fromEntries(responseData)));     
+          nsp.to('newclientconnect').emit('message',Object.fromEntries(responseData));
         });
 
         mqttClient.on('disconnecting',(reason) => {

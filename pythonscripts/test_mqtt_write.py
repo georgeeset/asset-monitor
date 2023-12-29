@@ -1,10 +1,14 @@
 import json
 import paho.mqtt.client as mqtt
 import random
+import os
 
 # Broker address and port
-broker_address = "localhost"
-broker_port = 1883
+broker_address = os.environ.get('MQTT_ADDRESS', 'localhost')
+broker_port = int(os.environ.get('MQTT_PORT', 1883))
+
+# broker_address = 'localhost'
+# broker_port = 1883
 
 # Publish channel
 publish_channel = "EsetAutomaiton/Lagos/Utility/AHU/vibration/4332wz" 
@@ -28,6 +32,7 @@ def publish_random_float():
 # Create an MQTT client object
 client = mqtt.Client()
 
+print(type(broker_address), type(broker_port))
 # Connect to the broker
 client.connect(broker_address, broker_port)
 
