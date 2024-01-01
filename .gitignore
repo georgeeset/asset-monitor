@@ -131,4 +131,7 @@ dist
 
 # Python configuration file
 #  config_file.txt
+
+# Arduino server_login_detail
+deviceLoginData.h
  
