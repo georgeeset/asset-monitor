@@ -37,7 +37,8 @@ const mqttOptions = {
   port: process.env.MQTT_PORT,
   host: process.env.MQTT_HOST,
   clientId: process.env.MQTT_CLIENT_ID,
-  clean: true
+  clean: false // Maintain subbscriptions accross reconnections
+  // clean: true // new subscription accross reconnections
 };
 
 const mqttClient = mqtt.connect(mqttOptions);
@@ -131,12 +132,18 @@ nsp.on('connection', function (socket) {
         // });
         const count = await nsp.in('newclientconnect').fetchSockets();
         console.log(count.length);
-        if (count.length > 1) {
+        if (count.length > 1 || mqttClient.subscribe == true) {
           return; // if clients already exist, no need to subscribe mqtt
           // mqttClient.subscribe(`${COMPANY_NAME}/#`);
         }
 
-        mqttClient.subscribe(`${COMPANY_NAME}/#`);
+        mqttClient.subscribe(`${COMPANY_NAME}/#`)
+        .then(() => {
+          console.log("subscribed to company name");
+        })
+        .catch((err) => {
+          console.error('subscription failed:', err);
+        });
 
         mqttClient.on('message', (topic, message) => {
           // console.log(message.toString());
@@ -166,8 +173,8 @@ nsp.on('connection', function (socket) {
           nsp.to('newclientconnect').emit('message', Object.fromEntries(responseData));
         });
 
-        mqttClient.on('disconnecting', (reason) => {
-          console.log('disconnecting from disconnecting')
+        mqttClient.on('reconnect', (reason) => {
+          console.log('reconnecting from disconnecting')
         });
 
         mqttClient.on('error', (error) => {
