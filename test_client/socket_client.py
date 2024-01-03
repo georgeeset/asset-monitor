@@ -2,7 +2,6 @@ import socketio
 
 # Server address and port
 server_address = "http://api.esetautomation.tech/socket/v1/"
-server_port = 80
 
 # Initialize SocketIO client
 sio = socketio.Client()
@@ -64,4 +63,4 @@ sio.connect(server_address, namespaces=['/my_assets'], headers={'user':'python'}
 
 # Wait for server response
 # while True:
-#     sio.wait()
+sio.wait()
