@@ -1,5 +1,5 @@
 import socketio
-
+import json
 # Server address and port
 server_address = "http://api.esetautomation.tech/socket/v1/"
 
@@ -37,7 +37,10 @@ def disconnect():
 
 @sio.on('message', namespace = '/my_assets')
 def message(data):
-    print(data)
+    if (isinstance(data, dict)):
+        print(f"{data['value']}, {data['date_time']}")
+    else:
+        print(data)
 
 @sio.on('getRecentData', namespace = '/my_assets')
 def get_resent_data(data):
