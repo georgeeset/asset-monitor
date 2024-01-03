@@ -12,7 +12,7 @@ import mqtt from 'mqtt';
 import { format } from 'path';
 
 
-dotenv.config({path: '.env'});
+dotenv.config({ path: '.env' });
 // Set your InfluxDB configuration
 const influxUrl = process.env.INFLUX_URL;
 const influxToken = process.env.INFLUX_TOKEN;
@@ -22,7 +22,7 @@ const influxOrg = process.env.INFLUX_ORG;
 const COMPANY_NAME = "EsetAutomaiton";
 
 // Instantiate the InfluxDB client with the provided configuration
-const influx = new InfluxDB({url: influxUrl, token: influxToken, org: influxOrg});
+const influx = new InfluxDB({ url: influxUrl, token: influxToken, org: influxOrg });
 const queryApi = influx.getQueryApi(influxOrg);
 
 // Create Express app and server
@@ -59,13 +59,13 @@ nsp.use((socket, next) => {
   console.log(socket.handshake.headers);
   next();
 });
-nsp.on('connection', function(socket){
+nsp.on('connection', function (socket) {
   // console.log('someone connected');
-  socket.emit('message', {description: 'Hay, welcome'});
+  socket.emit('message', { description: 'Hay, welcome' });
   socket.send('Hello from server');
   /**
    *  Subscribe the client to the channel
-   * use the socket data to of user to determine the
+   * use the socket data of user to determine the
    * chennel name which should likely be the company and location name
    * for test purposes, the name is fixed at newconnection
    * from docs, channels are closed automatically if no one is listening
@@ -77,17 +77,23 @@ nsp.on('connection', function(socket){
   //send a welcome message to all
   nsp.to('newclientconnect').emit("message", "new client just joined");
 
-  socket.on('disconnect', function(reason){
+  socket.on('disconnect', async (reason) => {
     console.log(reason);
-    socket.emit('newclientconnect', {description: "client disconnected"});
-    mqttClient.end(); //disconnect from mqtt
-    socket.leave('newclientconnect');
+    socket.emit('newclientconnect', { description: "client disconnected" });
+    // mqttClient.end(); //disconnect from mqtt
+    const count = await nsp.in('newclientconnect').fetchSockets();
+    console.log(count.length);
+    if (count.length < 1) {
+      mqttClient.unsubscribe(`${COMPANY_NAME}/#`);
+    }
+    // mqttClient.unsubscribe(`${COMPANY_NAME}/#`); // unsubscribe
+    // socket.leave('newclientconnect');
   });
 
-  socket.on('message', function(data){
+  socket.on('message', function (data) {
     console.log(`recieved form message ${data}`);
 
-    if (data == "getRecentData"){
+    if (data == "getRecentData") {
       /**
        * TODO--------------
        * get sensor infomation from mongodb database
@@ -117,21 +123,28 @@ nsp.on('connection', function(socket){
             ['value', obj._value],
           ]);
           // console.log(JSON.stringify(Object.fromEntries(responseData)));
-          nsp.to('newclientconnect').emit('message', Object.fromEntries(responseData));
-          // console.log(`${o._time} ${o._measurement} in '${o.location}' (${o.sensor_id}): ${o._field}=${o._value}`);
+          // nsp.to('newclientconnect').emit('message', Object.fromEntries(responseData));
+          // console.log(`${obj._time} ${obj._measurement} in '${obj.location}' (${obj.sensor_id}): ${obj._field}=${obj._value}`);
+          socket.send(Object.fromEntries(responseData));
         }
       };
-      myQuery().then(()=>{
-
+      myQuery().then(async (value) => {
         // client.on('connect', ()=>{
         //   console.log('Connected to MQTT broker');
         //   client.subscribe('COMPANY_NAME/#');
         // });
+        const count = await nsp.in('newclientconnect').fetchSockets();
+        console.log(count.length);
+        if (count.length > 1) {
+          return; // if clients already exist, no need to subscribe mqtt
+          // mqttClient.subscribe(`${COMPANY_NAME}/#`);
+        }
+
         mqttClient.subscribe(`${COMPANY_NAME}/#`);
 
         mqttClient.on('message', (topic, message) => {
           // console.log(message.toString());
-          //"EsetAutomaiton/Lagos/Utility/AHU/vibration/4332wz" 
+          //"EsetAutomaiton/Lagos/Utility/AHU/vibration/4332wz"
           const message_info = topic.split('/');
           let dataFormat = [
             ['company_name'],
@@ -153,14 +166,14 @@ nsp.on('connection', function(socket){
           // console.log(dataFormat);
 
           const responseData = new Map(dataFormat);
-          // console.log(JSON.stringify(Object.fromEntries(responseData)));     
-          nsp.to('newclientconnect').emit('message',Object.fromEntries(responseData));
+          // console.log(JSON.stringify(Object.fromEntries(responseData)));
+          nsp.to('newclientconnect').emit('message', Object.fromEntries(responseData));
         });
 
-        mqttClient.on('disconnecting',(reason) => {
+        mqttClient.on('disconnecting', (reason) => {
           console.log('disconnecting from disconnecting')
         });
-        
+
         mqttClient.on('error', (error) => {
           console.error('Error', error);
         });
@@ -168,12 +181,12 @@ nsp.on('connection', function(socket){
     }
   });
 
-  socket.on('newclientconnect', (data)=>{
+  socket.on('newclientconnect', (data) => {
     console.log(data)
   });
 
-  setTimeout(function(){
-    socket.emit('newclientconnect', function(){
+  setTimeout(function () {
+    socket.emit('newclientconnect', function () {
       console.log('A user timedout');
       socket.disconnect();
     });
