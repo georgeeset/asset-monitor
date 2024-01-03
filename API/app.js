@@ -143,7 +143,7 @@ nsp.on('connection', function (socket) {
         //   console.log('Connected to MQTT broker');
         //   client.subscribe('COMPANY_NAME/#');
         // });
-        if (subscibedTopics.includes(`${COMPANY_NAME}/#`)){
+        if (!(subscibedTopics.includes(`${COMPANY_NAME}/#`))){
           console.log("first subscribtion");
           mqttClient.subscribe(`${COMPANY_NAME}/#`);
           subscibedTopics.push(`${COMPANY_NAME}/#`);
