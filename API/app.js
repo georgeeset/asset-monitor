@@ -138,12 +138,6 @@ nsp.on('connection', function (socket) {
         }
 
         mqttClient.subscribe(`${COMPANY_NAME}/#`)
-        .then(() => {
-          console.log("subscribed to company name");
-        })
-        .catch((err) => {
-          console.error('subscription failed:', err);
-        });
 
         mqttClient.on('message', (topic, message) => {
           // console.log(message.toString());
