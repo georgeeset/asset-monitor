@@ -98,4 +98,3 @@ client.on_disconnect = on_disconnect
 
 # Keep the script running
 client.loop_forever()
-
