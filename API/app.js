@@ -4,12 +4,8 @@ import express, { response } from 'express';
 import http from 'http';
 import { Server } from 'socket.io';
 import dotenv from 'dotenv';
-import connect from './config/db.js';
 import { InfluxDB } from '@influxdata/influxdb-client';
-import { triggerAsyncId } from 'async_hooks';
-
 import mqtt from 'mqtt';
-import { format } from 'path';
 
 
 dotenv.config({ path: '.env' });
@@ -85,7 +81,6 @@ nsp.on('connection', function (socket) {
     console.log(count.length);
     if (count.length < 1) {
       mqttClient.unsubscribe(`${COMPANY_NAME}/#`);
-      mqttClient.end();
     }
     // mqttClient.unsubscribe(`${COMPANY_NAME}/#`); // unsubscribe
     // socket.leave('newclientconnect');
@@ -188,13 +183,12 @@ nsp.on('connection', function (socket) {
 
   setTimeout(function () {
     socket.emit('newclientconnect', function () {
-      console.log('A user timedout');
+      console.log('user timedout');
       socket.disconnect();
     });
   }, 1000000);
 
 });
-
 
 // Start server
 server.listen(3000, () => console.log('listening on localhost:3000'));
