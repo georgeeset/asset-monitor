@@ -85,6 +85,7 @@ nsp.on('connection', function (socket) {
     console.log(count.length);
     if (count.length < 1) {
       mqttClient.unsubscribe(`${COMPANY_NAME}/#`);
+      mqttClient.end();
     }
     // mqttClient.unsubscribe(`${COMPANY_NAME}/#`); // unsubscribe
     // socket.leave('newclientconnect');
