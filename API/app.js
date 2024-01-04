@@ -184,12 +184,17 @@ nsp.on('connection', function (socket) {
     console.log(data)
   });
 
-  setTimeout(function () {
-    socket.emit('newclientconnect', function () {
-      console.log('user timedout');
-      socket.disconnect();
-    });
-  }, 1000000);
+  setTimeout(async function () {
+    socket.emit('newclientconnect', `user ${socket.id} timed out`);
+    console.log('user timedout');
+    socket.disconnect();
+    const count = await nsp.in('newclientconnect').fetchSockets();
+    console.log(count.length);
+    if (count.length < 1) {
+      mqttClient.unsubscribe(`${COMPANY_NAME}/#`);
+      subscibedTopics.pop(`${COMPANY_NAME}/#`);
+    }
+  }, 400000);
 
 });
 
