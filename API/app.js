@@ -98,7 +98,6 @@ nsp.on('connection', function (socket) {
     const count = await nsp.in('newclientconnect').fetchSockets();
     console.log(count.length);
     if (count.length < 1) {
-      mqttClient.unsubscribe(`${COMPANY_NAME}/#`);
       subscibedTopics.pop(`${COMPANY_NAME}/#`);
       mqttClient.end();
     }
@@ -198,7 +197,7 @@ nsp.on('connection', function (socket) {
     const count = await nsp.in('newclientconnect').fetchSockets();
     console.log(count.length);
     if (count.length < 2) {
-      mqttClient.unsubscribe(`${COMPANY_NAME}/#`);
+      // mqttClient.unsubscribe(`${COMPANY_NAME}/#`);
       subscibedTopics.pop(`${COMPANY_NAME}/#`);
     }
     mqttClient.end();
