@@ -6,6 +6,7 @@ import { Server } from 'socket.io';
 import dotenv from 'dotenv';
 import { InfluxDB } from '@influxdata/influxdb-client';
 import mqtt from 'mqtt';
+import { doesNotMatch } from 'assert';
 
 
 dotenv.config({ path: '.env' });
@@ -59,6 +60,34 @@ mqttClient.on('disconnect', (reason) => {
   console.log("mqtt disconnected 00000")
 });
 
+mqttClient.on('message', (topic, message) => {
+  // console.log(message.toString());
+  //"EsetAutomaiton/Lagos/Utility/AHU/vibration/4332wz"
+  const message_info = topic.split('/');
+  let dataFormat = [
+    ['company_name'],
+    ['location'],
+    ['department'],
+    ['asset'],
+    ['measurement'],
+    ['sensor_id'],
+    ['date_time'],
+    ['value']
+  ];
+
+  for (let i = 0; i < message_info.length; i++) {
+    dataFormat[i].push(message_info[i]);
+  }
+  const now = new Date(); // get current date and time
+  dataFormat[dataFormat.length - 1].push(JSON.parse(message).value); // vill value
+  dataFormat[dataFormat.length - 2].push(now.toISOString()); //fill time in utc iso
+  // console.log(dataFormat);
+
+  const responseData = new Map(dataFormat);
+  // console.log(JSON.stringify(Object.fromEntries(responseData)));
+  nsp.to('newclientconnect').emit('message', Object.fromEntries(responseData));
+});
+
 // connect.connectDB(); //connect mongodb
 // Serve api rout
 app.get('/', (_req, res) => {
@@ -98,7 +127,7 @@ nsp.on('connection', function (socket) {
     const count = await nsp.in('newclientconnect').fetchSockets();
     console.log(count.length);
     if (count.length < 1) {
-      mqttClient.unsubscribe(`${COMPANY_NAME}/#`);
+      mqttClient.unsubscribe(COMPANY_NAME + '/#');
       subscibedTopics.pop(`${COMPANY_NAME}/#`);
     }
     //mqttClient.unsubscribe(`${COMPANY_NAME}/#`); // unsubscribe
@@ -156,34 +185,6 @@ nsp.on('connection', function (socket) {
           console.log("first subscribtion");
           mqttClient.subscribe(`${COMPANY_NAME}/#`);
           subscibedTopics.push(`${COMPANY_NAME}/#`);
-
-          mqttClient.on('message', (topic, message) => {
-            // console.log(message.toString());
-            //"EsetAutomaiton/Lagos/Utility/AHU/vibration/4332wz"
-            const message_info = topic.split('/');
-            let dataFormat = [
-              ['company_name'],
-              ['location'],
-              ['department'],
-              ['asset'],
-              ['measurement'],
-              ['sensor_id'],
-              ['date_time'],
-              ['value']
-            ];
-
-            for (let i = 0; i < message_info.length; i++) {
-              dataFormat[i].push(message_info[i]);
-            }
-            const now = new Date(); // get current date and time
-            dataFormat[dataFormat.length - 1].push(JSON.parse(message).value); // vill value
-            dataFormat[dataFormat.length - 2].push(now.toISOString()); //fill time in utc iso
-            // console.log(dataFormat);
-
-            const responseData = new Map(dataFormat);
-            // console.log(JSON.stringify(Object.fromEntries(responseData)));
-            nsp.to('newclientconnect').emit('message', Object.fromEntries(responseData));
-          });
         }
       });
     }
