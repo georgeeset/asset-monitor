@@ -51,7 +51,12 @@ mqttClient.on('reconnect', (reason) => {
 });
 
 mqttClient.on('error', (error) => {
-  console.error('Error', error);
+  console.error('Error00000000', error);
+  mqttClient.reconnect();
+});
+
+mqttClient.on('disconnect', (reason) => {
+  console.log("mqtt disconnected 00000")
 });
 
 // connect.connectDB(); //connect mongodb
@@ -70,7 +75,7 @@ nsp.use((socket, next) => {
 });
 nsp.on('connection', function (socket) {
   // console.log('someone connected');
-  socket.emit('message', { description: 'Hay, welcome' });
+  // socket.emit('message', { description: 'Hay, welcome' });
   socket.send('Hello from server');
   /**
    *  Subscribe the client to the channel
@@ -138,6 +143,7 @@ nsp.on('connection', function (socket) {
           socket.send(Object.fromEntries(responseData));
         }
       };
+
       myQuery().then(async (value) => {
         // client.on('connect', ()=>{
         //   console.log('Connected to MQTT broker');
@@ -162,7 +168,7 @@ nsp.on('connection', function (socket) {
               ['date_time'],
               ['value']
             ];
-  
+
             for (let i = 0; i < message_info.length; i++) {
               dataFormat[i].push(message_info[i]);
             }
@@ -170,7 +176,7 @@ nsp.on('connection', function (socket) {
             dataFormat[dataFormat.length - 1].push(JSON.parse(message).value); // vill value
             dataFormat[dataFormat.length - 2].push(now.toISOString()); //fill time in utc iso
             // console.log(dataFormat);
-  
+
             const responseData = new Map(dataFormat);
             // console.log(JSON.stringify(Object.fromEntries(responseData)));
             nsp.to('newclientconnect').emit('message', Object.fromEntries(responseData));
@@ -187,14 +193,17 @@ nsp.on('connection', function (socket) {
   setTimeout(async function () {
     socket.emit('newclientconnect', `user ${socket.id} timed out`);
     console.log('user timedout');
-    socket.disconnect();
+    socket.leave('newclientconnect');
     const count = await nsp.in('newclientconnect').fetchSockets();
     console.log(count.length);
-    if (count.length < 1) {
+    if (count.length < 2) {
       mqttClient.unsubscribe(`${COMPANY_NAME}/#`);
       subscibedTopics.pop(`${COMPANY_NAME}/#`);
     }
+    socket.disconnect(true);
   }, 400000);
+
+
 
 });
 
