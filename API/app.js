@@ -98,8 +98,8 @@ nsp.on('connection', function (socket) {
     const count = await nsp.in('newclientconnect').fetchSockets();
     console.log(count.length);
     if (count.length < 1) {
+      mqttClient.unsubscribe(`${COMPANY_NAME}/#`);
       subscibedTopics.pop(`${COMPANY_NAME}/#`);
-      mqttClient.end();
     }
     //mqttClient.unsubscribe(`${COMPANY_NAME}/#`); // unsubscribe
     // socket.leave('newclientconnect');
@@ -149,7 +149,10 @@ nsp.on('connection', function (socket) {
         //   console.log('Connected to MQTT broker');
         //   client.subscribe('COMPANY_NAME/#');
         // });
-        if (!(subscibedTopics.includes(`${COMPANY_NAME}/#`))){
+        const count = await nsp.in('newclientconnect').fetchSockets();
+        console.log(count.length);
+
+        if (!(subscibedTopics.includes(`${COMPANY_NAME}/#`)) && count.length < 2){
           console.log("first subscribtion");
           mqttClient.subscribe(`${COMPANY_NAME}/#`);
           subscibedTopics.push(`${COMPANY_NAME}/#`);
@@ -196,12 +199,12 @@ nsp.on('connection', function (socket) {
     socket.leave('newclientconnect');
     const count = await nsp.in('newclientconnect').fetchSockets();
     console.log(count.length);
+    socket.disconnect(true);
     if (count.length < 2) {
-      // mqttClient.unsubscribe(`${COMPANY_NAME}/#`);
+      mqttClient.unsubscribe(`${COMPANY_NAME}/#`);
       subscibedTopics.pop(`${COMPANY_NAME}/#`);
     }
-    mqttClient.end();
-    socket.disconnect(true);
+    // mqttClient.end();
   }, 400000);
 
 
