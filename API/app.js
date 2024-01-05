@@ -100,8 +100,9 @@ nsp.on('connection', function (socket) {
     if (count.length < 1) {
       mqttClient.unsubscribe(`${COMPANY_NAME}/#`);
       subscibedTopics.pop(`${COMPANY_NAME}/#`);
+      mqttClient.end();
     }
-    // mqttClient.unsubscribe(`${COMPANY_NAME}/#`); // unsubscribe
+    //mqttClient.unsubscribe(`${COMPANY_NAME}/#`); // unsubscribe
     // socket.leave('newclientconnect');
   });
 
@@ -200,6 +201,7 @@ nsp.on('connection', function (socket) {
       mqttClient.unsubscribe(`${COMPANY_NAME}/#`);
       subscibedTopics.pop(`${COMPANY_NAME}/#`);
     }
+    mqttClient.end();
     socket.disconnect(true);
   }, 400000);
 

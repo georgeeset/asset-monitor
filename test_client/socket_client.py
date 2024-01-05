@@ -37,7 +37,7 @@ def disconnect():
 
 @sio.on('message', namespace = '/my_assets')
 def message(data):
-    if (isinstance(data, dict)):
+    if (isinstance(data, dict) and 'value' in data.keys()):
         print(f"{data['value']}, {data['date_time']}")
     else:
         print(data)
