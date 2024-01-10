@@ -64,7 +64,7 @@ def on_message(client, userdata, msg):
     response = write_client.buckets_api().find_bucket_by_name(bucket_name)
     # print(response)
     if response:
-        print("bucket exists")
+        # print("bucket exists")
         write_api.write(bucket=extract_string(topic, 0), org=org, record=point, write_precision=WritePrecision.S)
     else:
        print("bucket does not exist")
@@ -79,7 +79,6 @@ def on_message(client, userdata, msg):
 def on_disconnect(client, userdata, rc):
     if rc != 0:
         print("unexpected mqtt disconnection. will auto-reconnect")
-
 
 # Create an MQTT client object
 client = mqtt.Client()

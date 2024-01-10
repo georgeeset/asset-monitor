@@ -4,10 +4,12 @@ import express, { response } from 'express';
 import http from 'http';
 import { Server } from 'socket.io';
 import dotenv from 'dotenv';
-import { InfluxDB } from '@influxdata/influxdb-client';
 import mqtt from 'mqtt';
-import { doesNotMatch } from 'assert';
-
+import { User, sequelize } from './models/User.js';
+import * as path from 'path';
+import pkg from 'jsonwebtoken';
+import { consoleLogger } from '@influxdata/influxdb-client';
+const { jwt } = pkg;
 
 dotenv.config({ path: '.env' });
 // Set your InfluxDB configuration
@@ -17,10 +19,6 @@ const influxOrg = process.env.INFLUX_ORG;
 
 // For test only
 const COMPANY_NAME = "EsetAutomaiton";
-
-// Instantiate the InfluxDB client with the provided configuration
-const influx = new InfluxDB({ url: influxUrl, token: influxToken, org: influxOrg });
-const queryApi = influx.getQueryApi(influxOrg);
 
 // Create Express app and server
 const app = express();
@@ -40,6 +38,77 @@ const mqttOptions = {
   clientId: process.env.MQTT_CLIENT_ID,
   clean: false // Maintain subbscriptions accross reconnections
   // clean: true // new subscription accross reconnections
+};
+
+// connect.connectDB(); //connect mongodb
+// Serve api rout
+app.get('/', (_req, res) => {
+  res.status(200).sendFile('index.html', {root: '/home/eset/Documents/asset-monitor/API/static/'});
+});
+
+// Register a new user
+app.post('/register', (req, res) => {
+  const { username, email, password } = req.body;
+  console.log("registering");
+  // Hash the password
+  const salt = bcrypt.genSaltSync(10);
+  const hashedPassword = bcrypt.hashSync(password, salt);
+
+  // Insert the user into the database
+  User.create({
+    username,
+    email,
+    password: hashedPassword
+  }).then(() => {
+    res.status(200).send('User registered successfully');
+  }).catch(() => {
+    res.status(500).send('Error registering new user');
+  });
+});
+
+// Authenticate a user
+app.post('/login', (req, res) => {
+  const { email, password } = req.body;
+
+  // Find the user in the database
+  User.findOne({
+    where: {
+      email
+    }
+  }).then((user) => {
+    if (!user) {
+      res.status(401).send('Invalid email or password');
+    } else {
+      // Compare the password
+      const isMatch = bcrypt.compareSync(password, user.password);
+      if (isMatch) {
+        // Generate a JWT token
+        const token = jwt.sign({ id: user.id }, 'secret', { expiresIn: '1h' });
+        res.status(200).send({ token });
+      } else {
+        res.status(401).send('Invalid email or password');
+      }
+    }
+  }).catch(() => {
+    res.status(500).send('Error authenticating user');
+  });
+});
+
+// Authenticate a user with JWT token
+const authenticateToken = (req, res, next) => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
+  if (token == null) {
+    return res.sendStatus(401);
+  }
+
+  jwt.verify(token, 'secret', (err, user) => {
+    if (err) {
+      return res.sendStatus(403);
+    }
+    req.user = user;
+    next();
+  });
 };
 
 //save list of mqtt subscriptions to avoid duplicate
@@ -88,24 +157,29 @@ mqttClient.on('message', (topic, message) => {
   nsp.to('newclientconnect').emit('message', Object.fromEntries(responseData));
 });
 
-// connect.connectDB(); //connect mongodb
-// Serve api rout
-app.get('/', (_req, res) => {
-  res.status(200).send('request ed home');
-});
 
 // Socket.io connection event
 var nsp = io.of('/my_assets');
+var userNsp = io.of('/user');
 
-nsp.use((socket, next) => {
-  console.log("executed beforeuse");
-  console.log(socket.handshake.headers);
-  next();
+nsp.use((packet, next) => {
+  console.log("attempt to connect");
+  const token = packet && packet[0] && packet[0].token;
+  if (!token) {
+    return next(new Error('Authentication error: Token not found'));
+  }
+  jwt.verify(token, 'secret', (err, decoded) => {
+    if (err) {
+      return next(new Error('Authentication error: Invalid token'));
+    }
+    next();
+  });
 });
+
 nsp.on('connection', function (socket) {
   // console.log('someone connected');
   // socket.emit('message', { description: 'Hay, welcome' });
-  socket.send('Hello from server');
+  socket.send('Hello from server ===');
   /**
    *  Subscribe the client to the channel
    * use the socket data of user to determine the
@@ -137,6 +211,10 @@ nsp.on('connection', function (socket) {
   socket.on('message', function (data) {
     console.log(`recieved form message ${data}`);
 
+    // if (data == "register"){
+    //   console.log("")
+    // }
+
     if (data == "getRecentData") {
       /**
        * TODO--------------
@@ -149,7 +227,6 @@ nsp.on('connection', function (socket) {
       const fluxQuery = `from(bucket: "${COMPANY_NAME}")
       |> range(start: -1h)
       |> filter(fn: (r) => r._measurement == "vibration")`;
-
 
       // Create an async function to query gand log new data
       const myQuery = async () => {
@@ -208,9 +285,34 @@ nsp.on('connection', function (socket) {
     // mqttClient.end();
   }, 400000);
 
+});
 
 
+
+userNsp.use((packet, next) => {
+  console.log("user coming in");
+  next()
+});
+
+userNsp.on('connection',(socket)=>{
+
+  console.log('on connection');
+  socket.send("Hello welcome to user thing");
+  socket.send(socket.id + "connected");
+
+  socket.on(('message'), function (payload) {
+    console.log(payload);
+  });
+
+
+  socket.on('register', function(payload) {
+    // console.log(payload);
+  });
 });
 
 // Start server
-server.listen(3000, () => console.log('listening on localhost:3000'));
+sequelize.authenticate().then(
+  () => {
+    server.listen(3000, () => console.log('listening on localhost:3000'));
+  }
+)

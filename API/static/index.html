@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Socket.io Authentication Example</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      font-size: 16px;
+      line-height: 1.5;
+      margin: 0;
+      padding: 0;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    h1 {
+      margin-top: 0;
+    }
+
+    form {
+      margin-bottom: 20px;
+    }
+
+    input[type="text"], input[type="password"], input[type="email"] {
+      display: block;
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 10px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      box-sizing: border-box;
+    }
+
+    input[type="submit"] {
+      display: block;
+      width: 100%;
+      padding: 10px;
+      background-color: #4CAF50;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    input[type="submit"]:hover {
+      background-color: #3e8e41;
+    }
+
+    .error {
+      color: red;
+      margin-bottom: 10px;
+    }
+
+    .tab {
+      display: none;
+    }
+
+    .tab.active {
+      display: block;
+    }
+
+    .tab-button {
+      display: inline-block;
+      padding: 10px;
+      margin-right: 10px;
+      background-color: #ccc;
+      color: #000;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    .tab-button.active {
+      background-color: #4CAF50;
+      color: #fff;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Socket.io Authentication Example</h1>
+    <div class="tab-buttons">
+      <button class="tab-button active" data-tab="login-tab">Login</button>
+      <button class="tab-button" data-tab="register-tab">Register</button>
+    </div>
+    <div class="tab-content">
+      <div class="tab login-tab active">
+        <form id="login-form">
+          <label for="email">Email:</label>
+          <input type="email" id="login-email" name="email" required>
+          <label for="password">Password:</label>
+          <input type="password" id="login-password" name="password" required>
+          <input type="submit" value="Login">
+        </form>
+      </div>
+      <div class="tab register-tab">
+        <form id="register-form">
+          <label for="username">Username:</label>
+          <input type="text" id="register-username" name="username" required>
+          <label for="email">Email:</label>
+          <input type="email" id="register-email" name="email" required>
+          <label for="password">Password:</label>
+          <input type="password" id="register-password" name="password" required>
+          <input type="submit" value="Register">
+        </form>
+      </div>
+    </div>
+    <div id="chat" style="display: none;">
+      <h2>Welcome, <span id="username-display"></span>!</h2>
+      <form id="chat-form">
+        <label for="message">Message:</label>
+        <input type="text" id="message" name="message" required>
+        <input type="submit" value="Send">
+      </form>
+      <ul id="messages"></ul>
+    </div>
+  </div>
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io("/user");
+
+    const tabButtons = document.querySelectorAll('.tab-button');
+    const tabContent = document.querySelector('.tab-content');
+    const loginTab = document.querySelector('.login-tab');
+    const registerTab = document.querySelector('.register-tab');
+    const usernameDisplay = document.getElementById('username-display');
+    const messageForm = document.getElementById('chat-form');
+    const messageInput = document.getElementById('message');
+    const messages = document.getElementById('messages');
+    const error = document.createElement('div');
+    error.classList.add('error');
+
+    tabButtons.forEach((button) => {
+      button.addEventListener('click', () => {
+        const tab = button.dataset.tab;
+        tabButtons.forEach((button) => {
+          button.classList.remove('active');
+        });
+        tabContent.querySelectorAll('.tab').forEach((tab) => {
+          tab.classList.remove('active');
+        });
+        button.classList.add('active');
+        tabContent.querySelector(`.${tab}`).classList.add('active');
+      });
+    });
+
+    document.getElementById('login-form').addEventListener('submit', (event) => {
+      event.preventDefault();
+      const email = event.target.elements.email.value;
+      const password = event.target.elements.password.value;
+      socket.emit('login', { email, password }, (response) => {
+        if (response.error) {
+          error.textContent = response.error;
+          event.target.appendChild(error);
+        } else {
+          event.target.style.display = 'none';
+          chat.style.display = 'block';
+          usernameDisplay.textContent = response.username;
+        }
+      });
+    });
+
+    document.getElementById('register-form').addEventListener('submit', (event) => {
+      event.preventDefault();
+      const username = event.target.elements.username.value;
+      const email = event.target.elements.email.value;
+      const password = event.target.elements.password.value;
+      socket.emit('register', { username, email, password }, (response) => {
+        if (response.error) {
+          error.textContent = response.error;
+          event.target.appendChild(error);
+        } else {
+          event.target.style.display = 'none';
+          chat.style.display = 'block';
+          usernameDisplay.textContent = response.username;
+        }
+      });
+    });
+
+    messageForm.addEventListener('submit', (event) => {
+      event.preventDefault();
+      const message = messageInput.value;
+      socket.send('chat message', message);
+      messageInput.value = '';
+    });
+
+    socket.on('chat message', (message) => {
+      const li = document.createElement('li');
+      li.textContent = message;
+      messages.appendChild(li);
+    });
+
+    socket.on('message', (message) => {
+      console.log(message);
+    });
+
+  </script>
+  </body>
+</html>

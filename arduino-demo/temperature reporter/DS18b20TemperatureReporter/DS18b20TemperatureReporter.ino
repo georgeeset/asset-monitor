@@ -5,7 +5,7 @@
 
 
 // Define software serial pins for sim800
-SoftwareSerial oneSerial(7, 6); //rx, tx for Serial debugging use
+SoftwareSerial oneSerial(7, 6); //rx, tx
 
 // Data wire is connected to pin10 on the Arduino Nano
 const int oneWireBus = 10;
@@ -24,16 +24,15 @@ void setup(){
   * retun: void
   */
 
-  // begin serial for debugging purposes
+  // Start serial communication for printing results
   oneSerial.begin(9600);
-  // Start serial interface for sim800 gsm module
   Serial.begin(9600);
 
   tempSensor.setPullupPin(10);
   // Start up the library
   tempSensor.begin();
-  oneSerial.println("waiting sim800 ...");
-  delay(10000); //wait 10 secs for gsm to boot
+  oneSerial.println("waiting sim ...");
+  delay(1000);
 }
 
 bool sayHi(){
@@ -54,7 +53,15 @@ bool sayHi(){
   sizeCount = Serial.available();
   if (sizeCount){
     Serial.readBytes(gsmResponseBuffer, sizeCount);
+    // oneSerial.write(gsmResponseBuffer, sizeCount);
+    // return Serial.find(expected);
   }
+  // oneSerial.print(memcmp(gsmResponseBuffer, expected, sizeCount - 1));
+  // for (int i = 0; i < sizeCount; i++){
+  //   oneSerial.print(gsmResponseBuffer[i]);
+  //   oneSerial.print(',');
+  // }
+  // oneSerial.print('\n');
 
   return (memcmp(gsmResponseBuffer, expected, sizeCount - 1) == 0);
 }
@@ -149,7 +156,7 @@ void publishMsg(float data){
 
   //index 4 start of channel name end in index 0x31
   byte publishPacket[62] = {0x30, 66, 0, 49, 'E', 's', 'e', 't',
-  'A', 'u', 't', 'o', 'm', 'a', 'i', 't', 'o', 'n', '/', 'L', 'a', 'g',
+  'A', 'u', 't', 'o', 'm', 'a', 't', 'i', 'o', 'n', '/', 'L', 'a', 'g',
   'o', 's', '/', 'U', 't', 'i', 'l', 'i', 't', 'y', '/', 'A', 'H', 'U',
   '/', 'v', 'i', 'b', 'r', 'a', 't', 'i', 'o', 'n', '/', '4', '3', '3',
   '2', 'w', 'z', '{', 0x22, 'v', 'a', 'l', 'u', 'e', 0x22, ':'}; //60 + 2
@@ -164,14 +171,15 @@ void publishMsg(float data){
 }
 
 
-void loop()
-{
+void loop(){
   /**
   * loop -  forever loop
   */
   bool response = false;
+
   // Call requestTemperatures() to issue a global temperature request
   tempSensor.requestTemperatures();
+
   byte okResponse[] = "OK\0"; //OK
   char atMessage[] = "AT";
   byte pushConfig[] = "AT+CIICR";
@@ -246,7 +254,7 @@ void loop()
   }
 
   connectMQTT();
-  publishMsg(22.34);
+  publishMsg(temperatureC);
   // sendTestMsg();
 
 
@@ -260,7 +268,7 @@ void loop()
     continue;
   }
   for (int i = 0; i < 20; i++){
-    delay(20000); //20 seconds delay before sending next data
+    delay(1000); //few seconds delay before sending next data
 
     vie = oneWayMessage(sendCip, sendRdy, 10, true);
     if (vie){
@@ -273,7 +281,10 @@ void loop()
       break;
     }
 
-    publishMsg(23.32);
+    tempSensor.requestTemperatures();
+    temperatureC = tempSensor.getTempCByIndex(0);
+
+    publishMsg(temperatureC);
 
     vie = waitResponse(sendOk, 60, true);
     if (vie){
@@ -292,5 +303,5 @@ void loop()
 
   // while(1);
   }
- 
+
 }

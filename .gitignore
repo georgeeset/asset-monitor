@@ -130,8 +130,12 @@ dist
 .pnp.*
 
 # Python configuration file
-#  config_file.txt
+config_file.txt
+
+# MYSQL config file
+mysql_config.txt
 
 # Arduino server_login_detail
 deviceLoginData.h
+
  
