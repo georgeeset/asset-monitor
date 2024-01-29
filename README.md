@@ -23,6 +23,9 @@ I am focusing the project on only Asset tracking but it can be applied to variou
 - Raw materials consumption reports
 - Data integrity and theft detection
 
-![Tech used](https://github.com/georgeeset/asset-monitor/imgs/tech_used.png)
 
-![Tech used](https://github.com/georgeeset/asset-monitor/imgs/tech_used2.png)
+![Screenshot 2024-01-29 154021](https://github.com/georgeeset/asset-monitor/assets/47377897/29efebf9-15df-4801-8b40-66843d3e7721)
+
+![Screenshot 2024-01-29 154529](https://github.com/georgeeset/asset-monitor/assets/47377897/857fe52d-739a-4c01-8a39-1338ce886328)
+
+
