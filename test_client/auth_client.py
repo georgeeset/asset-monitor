@@ -63,7 +63,6 @@ sio.connect(server_address, namespaces=['/user'], headers={'user':'python'})
 
 
 
-
 # Wait for server response
 # while True:
 sio.wait()
